@@ -14,30 +14,45 @@
 
     <script>
 
-        var margin = { top: 75, right: 10, bottom: 20, left: 100 };
-
-        var width = 960 - margin.left - margin.right,
+        // set the dimensions and margins of the graph
+        var margin = { top: 75, right: 10, bottom: 20, left: 100 },
+             width = 960 - margin.left - margin.right,
             height = 500 - margin.top - margin.bottom;
 
+        // set dimensions of the cells in the graph
         const rows = 15,
             col = 15;
             cellWidth = 50,
             cellHeight = 25,
             filledCellWidth = 49,
             filledCellHeight = 24;
-            
 
-        d3.csv("MaxToMin.csv", function (data) {
 
-            var svg = d3.select("body").append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        // set the ranges
+        var x = d3.scaleOrdinal([0, col]);
+        var y = d3.scaleLinear().range([height, 0]);
 
-            var group = svg.append("g")
-                .attr("transform", "translate(100,100)");
+        var svg = d3.select("body").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+        // get the data
+        d3.csv("MaxToMin.csv", function (error, data) {
+            if (error) throw error;
+
+            data.forEach(function (d) {
+                d.location = d.location;
+                d.action = d.action;
+                d.value = +d.value;
+            });
+
+            // scale the range of the data
+            x.domain(d3.extent(data, function (d) { return d.action; }));
+            y.domain([0, d3.max(data, function (d) { return d.close; })]);
+
+            // add the cells
             svg.selectAll("rect")
                 .data(data)
                 .enter()
@@ -65,15 +80,20 @@
                     }
 
                 })
-                .text()
+
+            // add the x axis
+            // Add the x Axis
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisTop(x));
+
+            svg.append("text")
+                .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.top + 20) + ")")
+                .style("text-anchor", "middle")
+                .text("Actions")
                     
          });
-        //"#e60000", "#ff5050", "#ffffcc", "#99ffbb", "#009933"
-/*
-        for (var  i = 0; i < data.length; i++){
-        console.log(data[i].location);
-        console.log(data[i].action);
-        console.log(data[i].value);  }*/
+
 
     </script>
   

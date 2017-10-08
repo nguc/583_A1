@@ -24,7 +24,7 @@
             height = 300 - margin.top - margin.bottom;
 
 
-        d3 = d3.csv("MaxToMin.csv", function (error, data) {
+        d3.csv("MaxToMin.csv", function (error, data) {
             if (error) return console.error(error);
 
             var value = data.map(function (item) {

@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8" />
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+
+<body>
+    <div id="chart"></div>
+
+    <script>
+
+        var margin = { top: 75, right: 10, bottom: 20, left: 100 };
+
+        var width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+        const rows = 15,
+            col = 15;
+            cellWidth = 50,
+            cellHeight = 25,
+            filledCellWidth = 49,
+            filledCellHeight = 24;
+            
+
+        d3.csv("MaxToMin.csv", function (data) {
+
+            var svg = d3.select("body").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var group = svg.append("g")
+                .attr("transform", "translate(100,100)");
+
+            svg.selectAll("rect")
+                .data(data)
+                .enter()
+                    .append("rect")
+                    .attr("width", filledCellWidth)
+                    .attr("height", filledCellHeight)
+                    .attr("x", function (d, i) { return ((i - (Math.floor(i / col) * col)) * cellWidth); })
+                    .attr("y", function (d, i) { return Math.floor(i / rows) * cellHeight; })
+                
+                .attr("fill", function (d) {
+                    if (d.value <= 1) {
+                        return "#e60000"    // red
+                    }
+                    else if (d.value <= 3) {
+                        return "#ff6666"    //light red
+                    }
+                    else if (d.value <= 5){
+                        return "#ffff42"   // light yellow
+                    }
+                    else if (d.value <= 7) {
+                        return "#66ff66"    // light green
+                    }
+                    else {
+                        return "#009933"    // green
+                    }
+
+                })
+                .text()
+                    
+         });
+        //"#e60000", "#ff5050", "#ffffcc", "#99ffbb", "#009933"
+/*
+        for (var  i = 0; i < data.length; i++){
+        console.log(data[i].location);
+        console.log(data[i].action);
+        console.log(data[i].value);  }*/
+
+    </script>
+  
+
+</body>
+
+
+</html>

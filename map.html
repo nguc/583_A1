@@ -8,6 +8,22 @@
     <script src="https://d3js.org/d3.v4.js"></script>
 </head>
 
+<style>
+    rect:hover{ fill: black;}
+    
+    div.tooltip{
+        position: absolute;
+        text-align:center;
+        width:60px;
+        height: 14px;
+        padding: 2px;
+        font: 12px sans-serif;
+        background: lightsteelblue;
+        border: 0px;
+        border-radius: 8px;
+        pointer-events: none;
+    }
+</style>
 
 <body>
     <div id="chart"></div>
@@ -15,44 +31,72 @@
     <script>
 
         // set the dimensions and margins of the graph
-        var margin = { top: 75, right: 10, bottom: 20, left: 100 },
-             width = 960 - margin.left - margin.right,
-            height = 500 - margin.top - margin.bottom;
+        const margin = { top: 80, right: 10, bottom: 20, left: 100 },
+            width = 1000 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom,
+            gridSize = Math.floor(width / 24),
+            legendElementWidth = gridSize * 2,
+            buckets = 5,
+            colors = ["#009933", "#99ffbb", "#ffff42", "#ff5050", "#e60000"],
+            legendLabel = ["8 - 9", "6 - 7", "4 - 5", "2 - 3", "0 - 1"];
+                
+
 
         // set dimensions of the cells in the graph
-        const rows = 15,
+      const rows = 15,
             col = 15;
             cellWidth = 50,
             cellHeight = 25,
             filledCellWidth = 49,
             filledCellHeight = 24;
 
-
-        // set the ranges
-        var x = d3.scaleOrdinal([0, col]);
-        var y = d3.scaleLinear().range([height, 0]);
-
+        //  set up scale and position of axis
+        var xScale = d3.scaleBand().rangeRound([0, (cellWidth * col)]);
+        var yScale = d3.scaleBand().rangeRound([0, (cellHeight* rows)]);
+        var xAxis = d3.axisTop(xScale)
+                    .tickSize([0]);
+        var yAxis = d3.axisLeft(yScale)
+                    .tickSize([0]);
+       
+        // set up the svg object to draw on
         var svg = d3.select("body").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         // get the data
         d3.csv("MaxToMin.csv", function (error, data) {
             if (error) throw error;
 
-            data.forEach(function (d) {
-                d.location = d.location;
-                d.action = d.action;
-                d.value = +d.value;
-            });
+            xScale.domain(data.map(function (d) { return d.action }));
+            yScale.domain(data.map(function (d) { return d.location }));
 
-            // scale the range of the data
-            x.domain(d3.extent(data, function (d) { return d.action; }));
-            y.domain([0, d3.max(data, function (d) { return d.close; })]);
+            const colorScale = d3.scaleQuantile()
+                .domain([0, buckets - 1, d3.max(data, (d) => d.value)])
+                .range(colors);
 
-            // add the cells
+            // add the chart title
+            var chartTitle = svg.append("text")
+                .attr("class", "title")
+                .attr("x", width/4)
+                .attr("y", -50)
+                    .text("Behavioural appropriateness based on location")
+
+            // add labels the axis
+            var xElements = svg.append("g")
+                .attr("class", "x axis")
+                .call(xAxis)
+        
+            var yElements = svg.append("g")
+                .attr("calss", "y axis")
+                .call(yAxis);
+
+            var div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+            // add the cells 
             svg.selectAll("rect")
                 .data(data)
                 .enter()
@@ -61,39 +105,64 @@
                     .attr("height", filledCellHeight)
                     .attr("x", function (d, i) { return ((i - (Math.floor(i / col) * col)) * cellWidth); })
                     .attr("y", function (d, i) { return Math.floor(i / rows) * cellHeight; })
-                
-                .attr("fill", function (d) {
-                    if (d.value <= 1) {
-                        return "#e60000"    // red
-                    }
-                    else if (d.value <= 3) {
-                        return "#ff6666"    //light red
-                    }
-                    else if (d.value <= 5){
-                        return "#ffff42"   // light yellow
-                    }
-                    else if (d.value <= 7) {
-                        return "#66ff66"    // light green
-                    }
-                    else {
-                        return "#009933"    // green
-                    }
+                    .attr("fill", function (d) {
+                        if (d.value <= 1.9) {
+                            return colors[4]    // red
+                        }
+                        else if (d.value <= 3.9) {
+                            return colors[3]    //light red
+                        }
+                        else if (d.value <= 5.9) {
+                            return colors[2]  // light yellow
+                        }
+                        else if (d.value <= 7.9) {
+                            return colors[1]    // light green
+                        }
+                        else {
+                            return colors[0]    // green
+                        }
 
-                })
+                    })
+                    .on("mouseover", function (d) {
+                        div.transition()
+                            .duration(100)
+                            .style("opacity", .9);
+                        div.text(d.value)
+                            .style("left", (d3.event.pageX))
+                            .style("top", (d3.event.pageY));
+                    })
+                    .on("mouseout", function (d) {
+                        div.transition(0)
+                            .duration(150)
+                            .style("opacity", 0);
+                    });
 
-            // add the x axis
-            // Add the x Axis
-            svg.append("g")
-                .attr("transform", "translate(0," + height + ")")
-                .call(d3.axisTop(x));
+            // add a legend for the colour values
+            const legend = svg.selectAll(".legend")
+                    .data([0].concat(colorScale.quantiles()), (d) => d);
 
-            svg.append("text")
-                .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.top + 20) + ")")
-                .style("text-anchor", "middle")
-                .text("Actions")
-                    
+            const legend_g = legend.enter()
+                    .append("g")
+                    .attr("class", "legend");
+
+            legend_g.append("rect")
+                .attr("x", (d, i) => legendElementWidth * i)
+                .attr("y", height)
+                .attr("width", legendElementWidth)
+                .attr("height", gridSize / 2)
+                .style("fill", (d, i) => colors[i]);
+
+            legend_g.append("text")
+                .attr("class", "mono")
+                .attr("x", (d, i) => legendElementWidth * i + 25)
+                .attr("y", height+ 13)
+                .attr("font-size", 11)
+                .text(function (d, i) { return legendLabel[i] });
+
+            legend.exit().remove();
          });
 
+       
 
     </script>
   
